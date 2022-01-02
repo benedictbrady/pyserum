@@ -28,10 +28,10 @@ pytest-asyncio = "*"
 types-requests = "*"
 
 [packages]
-solana = {version = ">=0.15.0"}
 construct = "*"
 flake8 = "*"
 construct-typing = "*"
+typing-extensions = "*"
 
 [requires]
-python_version = "3.7"
+python_version = "3.8"
