@@ -1,13 +1,16 @@
 import sys
-sys.path.append("/Users/benedictbrady/projects/pyserum")
-sys.path.append("/Users/benedictbrady/projects/solana-py/src")
+
+sys.path.append("/Users/benedictbrady/code/pyserum")
+sys.path.append("/Users/benedictbrady/code/solana-py/src")
 import asyncio
-from pyserum.async_connection import async_conn
-from pyserum.market import AsyncWebsocketMarket, AsyncMarket
-from pyserum.connection import get_live_markets
-from timeit import default_timer as timer
-from solana.rpc.websocket_api import connect
 import logging
+from timeit import default_timer as timer
+
+from solana.rpc.websocket_api import connect
+
+from pyserum.async_connection import async_conn
+from pyserum.connection import get_live_markets
+from pyserum.market import AsyncMarket, AsyncWebsocketMarket
 
 MILLISECONDS_IN_SECONDS = 1_000
 
@@ -63,7 +66,7 @@ class SerumMarketData:
     async def stream_cumulative_bid(self, quantity):
         async with async_conn(f"https://{self.url_stub}") as connection:
             market = await AsyncWebsocketMarket.initialize(connection, self.address)
-            async with connect(f"ws://{self.url_stub}") as websocket:
+            async with connect(f"wss://{self.url_stub}") as websocket:
                 await market.subscribe_to_bids(websocket)
                 try:
                     while True:
@@ -73,16 +76,17 @@ class SerumMarketData:
                         cumulative_bid = self.compute_cumulative_price(bid_iterable, quantity)
                         self.cumulative_bid = cumulative_bid
                         end = timer()
-                        logging.info(f"bid: {self.cumulative_bid} - ask: {self.cumulative_ask} | duration: {(end - start) * MILLISECONDS_IN_SECONDS}")
+                        logging.info(
+                            f"bid: {self.cumulative_bid} - ask: {self.cumulative_ask} | duration: {(end - start) * MILLISECONDS_IN_SECONDS}"
+                        )
                 except KeyboardInterrupt:
                     await market.unsubscribe_to_bids(websocket)
                     print("bid websocket shutdown properly")
-                
 
     async def stream_cumulative_ask(self, quantity):
         async with async_conn(f"https://{self.url_stub}") as connection:
             market = await AsyncWebsocketMarket.initialize(connection, self.address)
-            async with connect(f"ws://{self.url_stub}") as websocket:
+            async with connect(f"wss://{self.url_stub}") as websocket:
                 await market.subscribe_to_asks(websocket)
                 try:
                     while True:
@@ -92,19 +96,22 @@ class SerumMarketData:
                         cumulative_ask = self.compute_cumulative_price(ask_iterable, quantity)
                         self.cumulative_ask = cumulative_ask
                         end = timer()
-                        logging.info(f"bid: {self.cumulative_bid} - ask: {self.cumulative_ask} | duration: {(end - start) * MILLISECONDS_IN_SECONDS}")
+                        logging.info(
+                            f"bid: {self.cumulative_bid} - ask: {self.cumulative_ask} | duration: {(end - start) * MILLISECONDS_IN_SECONDS}"
+                        )
                 except KeyboardInterrupt:
                     await market.unsubscribe_to_asks(websocket)
                     print("ask websocket shutdown properly")
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename='data.log', format='%(asctime)s %(levelname)s %(message)s', level=logging.INFO)
+    logging.basicConfig(filename="data.log", format="%(asctime)s %(levelname)s %(message)s", level=logging.INFO)
 
-    md = SerumMarketData("MSOL_USDC") # , url_stub="solana-api.projectserum.com")
+    md = SerumMarketData("MSOL_USDC", url_stub="ssc-dao.genesysgo.net")
     print(md.address)
-    quantity = 100
-    loop = asyncio.get_event_loop()
-    asyncio.ensure_future(md.stream_cumulative_bid(quantity))
-    asyncio.ensure_future(md.stream_cumulative_ask(quantity))
-    loop.run_forever()
+    # quantity = 0.001
+    # loop = asyncio.get_event_loop()
+    # asyncio.ensure_future(md.stream_cumulative_bid(quantity))
+    # asyncio.ensure_future(md.stream_cumulative_ask(quantity))
+    # loop.run_forever()
+    asyncio.run(md.print_book())
